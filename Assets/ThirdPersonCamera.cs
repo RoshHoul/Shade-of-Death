@@ -31,12 +31,6 @@ public class ThirdPersonCamera : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-     if (Input.anyKey)
-            {
-                Debug.Log(Input.inputString);
-            }
-
-
     }
 
     void LateUpdate()

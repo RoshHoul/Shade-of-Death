@@ -66,6 +66,7 @@ public class FieldOfView : MonoBehaviour {
     void FindVisibleTarget ()
     {
         visibleTargets.Clear();
+  
         Collider[] targetsInViewRadius = Physics.OverlapSphere(transform.position, viewRadius, targetMask);
 
         for (int i = 0; i < targetsInViewRadius.Length; i++)
@@ -80,6 +81,10 @@ public class FieldOfView : MonoBehaviour {
                 {
                     visibleTargets.Add(target);
                     TargetFound = 1;
+                    if (this.gameObject.tag == "EnemyMob")
+                    {
+                        GetComponent<SwordmanBehaviour>().canCharge = true;
+                    }
                 }
             }
         }

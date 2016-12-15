@@ -13,6 +13,8 @@ public class CharacterControllerLogic : MonoBehaviour {
     private float directionSpeed = 1.5f;
     [SerializeField]
     private float rotationDegreePerSecond = 120f;
+    [SerializeField]
+    private float speedDampTime = 0.05f;
 
     private float speed = 0.0f;
     private float direction = 0f;
@@ -20,15 +22,25 @@ public class CharacterControllerLogic : MonoBehaviour {
     private float vertical = 0.0f;
     private float charAngle;
     private AnimatorStateInfo stateInfo;
+    private AnimatorTransitionInfo transInfo;
 
+    private int m_Idle = 0;
     private int m_LocomotionId = 0;
-    private int m_LocomotionIdPivotLId = 0;
-    private int m_LocomotionIdPivotRId = 0;
+    private int m_LocomotionPivotLId = 0;
+    private int m_LocomotionPivotRId = 0;
+    private int m_LocomotionPivotLTransId = 0;
+    private int m_LocomotionPivotRTransId = 0;
+    
     private int m_Jump = 0;
+
+    public GameObject projectile;
+    GameObject firePos;
+    public float LocomotionTreshehold { get { return 0.2f; } }
 
     // Use this for initialization
     void Start()
     {
+        firePos = GameObject.FindGameObjectWithTag("FirePos");
         animator = GetComponent<Animator>();
 
         if (animator.layerCount >= 2)
@@ -37,9 +49,15 @@ public class CharacterControllerLogic : MonoBehaviour {
         }
 
         m_LocomotionId = Animator.StringToHash("Base Layer.Locomotion");
-        m_LocomotionIdPivotLId = Animator.StringToHash("Base Layer.LocomotionPivotL");
-        m_LocomotionIdPivotRId = Animator.StringToHash("Base Layer.LocomotionPivotR");
+        m_LocomotionPivotLId = Animator.StringToHash("Base Layer.LocomotionPivotL");
+        m_LocomotionPivotRId = Animator.StringToHash("Base Layer.LocomotionPivotR");
+        m_LocomotionPivotLTransId = Animator.StringToHash("Base Layer.Locomotion -> Base Layer.LocomotionPivotL");
+        m_LocomotionPivotRTransId = Animator.StringToHash("Base Layer.Locomotion -> Base Layer.LocomotionPivotR");
+        m_Idle = Animator.StringToHash("Base Layer.IdleNonCombat");
         m_Jump = Animator.StringToHash("Base Layer.jump");
+
+
+        
     }
 
     // Update is called once per frame
@@ -49,6 +67,7 @@ public class CharacterControllerLogic : MonoBehaviour {
         {
 
             stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            transInfo = animator.GetAnimatorTransitionInfo(0);
 
             horizontal = Input.GetAxis("Horizontal");
             vertical = Input.GetAxis("Vertical");
@@ -57,7 +76,7 @@ public class CharacterControllerLogic : MonoBehaviour {
             direction = 0.0f;
 
             StickToWorldSpace(this.transform, gamecam.transform, ref direction, ref speed, ref charAngle, IsInPivot());
-            animator.SetFloat("Speed", speed);
+            animator.SetFloat("Speed", speed, speedDampTime, Time.deltaTime);
             animator.SetFloat("Direction", direction, directionDampTime, Time.deltaTime);
                
             if (speed > LocomotionTreshehold)
@@ -68,12 +87,32 @@ public class CharacterControllerLogic : MonoBehaviour {
                 }
             }
 
-            if (speed < LocomotionTreshehold && Mathf.Abs(h) < 0.5f)
+            if (speed < LocomotionTreshehold && Mathf.Abs(horizontal) < 0.5f)
             {
-                animator.SetFloat("Direction", 0f);
+                animator.SetFloat("Direction", 0f); 
                 animator.SetFloat("Angle", 0f);
             }
+ //            Debug.Log("Is it in pivot?" + IsInPivot());
 
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                animator.SetBool("Hit", true);
+                GameObject ball = Instantiate(projectile) as GameObject;
+                ball.transform.position = firePos.transform.position;
+                Rigidbody r = ball.GetComponent<Rigidbody>();
+ //               if ((animator.IsInTransition(0) && (animator.GetNextAnimatorStateInfo(0).nameHash == m_Idle)))
+ //               {
+                    Debug.Log("strelqm");
+                    r.AddForce(firePos.transform.forward * 50, ForceMode.Impulse);
+                    //                r.velocity = new Vector3(0,0,100);
+ //               }
+            }
+            if(Input.GetKeyUp(KeyCode.Space))
+            {
+                animator.SetBool("Hit", false);
+            }
+
+            
         }
     }
 
@@ -128,6 +167,16 @@ public class CharacterControllerLogic : MonoBehaviour {
 
     public bool IsInPivot()
     {
-        return stateInfo.nameHash == m_LocomotionIdPivotLId || stateInfo.nameHash == m_LocomotionIdPivotRId;
+        return stateInfo.nameHash == m_LocomotionPivotLId || 
+            stateInfo.nameHash == m_LocomotionPivotRId ||
+            transInfo.nameHash == m_LocomotionPivotLTransId || 
+            transInfo.nameHash == m_LocomotionPivotRTransId;
+    }
+
+    void onTriggerEnter(Collider coll)
+    {
+        //if (coll.gameObject.tag == "Weapon")
+ //       Debug.Log("Mecha v kokala");
+
     }
 }
