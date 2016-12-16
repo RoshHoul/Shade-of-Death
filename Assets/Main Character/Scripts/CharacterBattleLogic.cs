@@ -12,21 +12,23 @@ public class CharacterBattleLogic : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-	
+        Debug.Log(inCombat + " is inCombat");
 	}
 
     void OnTriggerEnter(Collider coll)
     {
-        if (coll.gameObject.tag == "EnemyMob")
+        if (coll.gameObject.tag == "EnemyMob") { 
             inCombat = true;
-
-        if (coll.gameObject.tag == "EndGame")
-            Debug.Log("Game Over"); 
+            Debug.Log("inCombat is: " + inCombat);
+        }
     }
 
     void OnTriggerExit (Collider coll)
     {
         if (coll.gameObject.tag == "EnemyMob")
+        {
             inCombat = false;
+//            Debug.Log("inCombat is: " + inCombat);
+        }
     }
 }

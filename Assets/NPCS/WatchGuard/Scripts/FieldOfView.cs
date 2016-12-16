@@ -81,6 +81,7 @@ public class FieldOfView : MonoBehaviour {
                 {
                     visibleTargets.Add(target);
                     TargetFound = 1;
+
                     if (this.gameObject.tag == "EnemyMob")
                     {
                         GetComponent<SwordmanBehaviour>().canCharge = true;

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
 
 public class CharacterControllerLogic : MonoBehaviour {
 
@@ -16,6 +17,7 @@ public class CharacterControllerLogic : MonoBehaviour {
     [SerializeField]
     private float speedDampTime = 0.05f;
 
+    public int health = 100;
     private float speed = 0.0f;
     private float direction = 0f;
     private float horizontal = 0.0f;
@@ -24,18 +26,36 @@ public class CharacterControllerLogic : MonoBehaviour {
     private AnimatorStateInfo stateInfo;
     private AnimatorTransitionInfo transInfo;
 
+
     private int m_Idle = 0;
     private int m_LocomotionId = 0;
     private int m_LocomotionPivotLId = 0;
     private int m_LocomotionPivotRId = 0;
     private int m_LocomotionPivotLTransId = 0;
     private int m_LocomotionPivotRTransId = 0;
-    
+    private bool nextAttack;
     private int m_Jump = 0;
 
+    public Text gameOverText;
+    public GameObject sword;
     public GameObject projectile;
     GameObject firePos;
     public float LocomotionTreshehold { get { return 0.2f; } }
+    public bool hitFinished = false;
+    private bool amIHit;
+
+    AnimationEvent ae = new AnimationEvent();
+/*
+    private IEnumerator Wait(float waitTime)
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(waitTime);
+ //            yield return new WaitUntil()
+
+            animator.SetBool("TakeHit", false);
+        }
+    } */
 
     // Use this for initialization
     void Start()
@@ -57,14 +77,17 @@ public class CharacterControllerLogic : MonoBehaviour {
         m_Jump = Animator.StringToHash("Base Layer.jump");
 
 
-        
+        AnimationEvent ae = new AnimationEvent();
+        ae.messageOptions = SendMessageOptions.DontRequireReceiver;
+
+
     }
 
     // Update is called once per frame
     void Update() {
-
         if (animator)
         {
+            
 
             stateInfo = animator.GetCurrentAnimatorStateInfo(0);
             transInfo = animator.GetAnimatorTransitionInfo(0);
@@ -78,7 +101,7 @@ public class CharacterControllerLogic : MonoBehaviour {
             StickToWorldSpace(this.transform, gamecam.transform, ref direction, ref speed, ref charAngle, IsInPivot());
             animator.SetFloat("Speed", speed, speedDampTime, Time.deltaTime);
             animator.SetFloat("Direction", direction, directionDampTime, Time.deltaTime);
-               
+
             if (speed > LocomotionTreshehold)
             {
                 if (!IsInPivot())
@@ -89,10 +112,10 @@ public class CharacterControllerLogic : MonoBehaviour {
 
             if (speed < LocomotionTreshehold && Mathf.Abs(horizontal) < 0.5f)
             {
-                animator.SetFloat("Direction", 0f); 
+                animator.SetFloat("Direction", 0f);
                 animator.SetFloat("Angle", 0f);
             }
- //            Debug.Log("Is it in pivot?" + IsInPivot());
+            //            Debug.Log("Is it in pivot?" + IsInPivot());
 
             if (Input.GetKeyDown(KeyCode.Space))
             {
@@ -100,20 +123,63 @@ public class CharacterControllerLogic : MonoBehaviour {
                 GameObject ball = Instantiate(projectile) as GameObject;
                 ball.transform.position = firePos.transform.position;
                 Rigidbody r = ball.GetComponent<Rigidbody>();
- //               if ((animator.IsInTransition(0) && (animator.GetNextAnimatorStateInfo(0).nameHash == m_Idle)))
- //               {
-                    Debug.Log("strelqm");
-                    r.AddForce(firePos.transform.forward * 50, ForceMode.Impulse);
-                    //                r.velocity = new Vector3(0,0,100);
- //               }
+                //               if ((animator.IsInTransition(0) && (animator.GetNextAnimatorStateInfo(0).nameHash == m_Idle)))
+                //               {
+                Debug.Log("strelqm");
+                r.AddForce(firePos.transform.forward * 50, ForceMode.Impulse);
+                //                r.velocity = new Vector3(0,0,100);
+                //               }
             }
-            if(Input.GetKeyUp(KeyCode.Space))
+            if (Input.GetKeyUp(KeyCode.Space))
             {
                 animator.SetBool("Hit", false);
             }
 
+            //if (sword.GetComponent<SwordCheck>().hitFinished)
+            //{
+            //    animator.SetBool("TakeHit", true);
+            //    //                StartCoroutine(Wait(0.1f));
+            //}
+
+            //if (animator.GetCurrentAnimatorStateInfo(0).IsName("AnimationName"))
+            //{
+            //    animator.SetBool("TakeHit", false);
+            //    amIHit = false;
+            //}
+/*            if (!sword.GetComponent<SwordCheck>().readyToMove) 
+            {
+                animator.SetBool("TakeHit", false);
+            }
+            */
+
+//            Debug.Log(health);
+            
+            if (IsDeath()) {
+                animator.SetInteger("Health", 0);
+                gameOverText.enabled = true;
+            }
+
+
             
         }
+    }
+
+    void getHit()
+    {
+        animator.SetBool("Take hit", true);
+    }
+
+    void getOkey()
+    {
+        animator.SetBool("Take hit", false);
+    }
+
+    bool IsDeath()
+    {
+        if (health <= 0) 
+            return true;
+        else
+            return false;
     }
 
     void FixedUpdate()
@@ -173,10 +239,11 @@ public class CharacterControllerLogic : MonoBehaviour {
             transInfo.nameHash == m_LocomotionPivotRTransId;
     }
 
-    void onTriggerEnter(Collider coll)
+
+    void onTriggerExit(Collider coll)
     {
-        //if (coll.gameObject.tag == "Weapon")
- //       Debug.Log("Mecha v kokala");
+        if (coll.gameObject.layer == LayerMask.NameToLayer("Player"))
+            hitFinished = false;
 
     }
 }

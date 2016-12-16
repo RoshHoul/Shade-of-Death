@@ -18,6 +18,7 @@ public class PatrolAgent : MonoBehaviour
     public Vector3 Velocity;
     public List<Transform> visibleTargets;
     public int target;
+    public bool targetFound = false;
 
     Rigidbody rb;
 
@@ -29,6 +30,8 @@ public class PatrolAgent : MonoBehaviour
     private int sizeList;
     private bool isHit = false;
     System.Random r = new System.Random();
+
+    GameObject[] enemies;
 
     void Start()
     {
@@ -150,6 +153,21 @@ public class PatrolAgent : MonoBehaviour
             animator.SetBool("isHit", true);
             Rigidbody r = GetComponent<Rigidbody>();
             r.isKinematic = true;
+        }
+    }
+
+    void OnTriggerEnter(Collider alarm)
+    {
+        if (alarm.gameObject.tag == "Alarm")
+        {
+            targetFound = true;
+            Debug.Log("VIKAI");
+           enemies = GameObject.FindGameObjectsWithTag("EnemyMob");
+            foreach (GameObject enemy in enemies )
+            {
+//                enemy.GetComponent<Rigidbody>().isKinematic = false;
+                
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ public class SwordmanBehaviour : MonoBehaviour {
     [SerializeField]
     public Animator animator;
 
+    public int health = 100;
     public Transform Enemy;
     public Transform[] Waypoints;
     public float Speed;
@@ -19,6 +20,8 @@ public class SwordmanBehaviour : MonoBehaviour {
     public int target;
     public Transform circlePosition;
     public GameObject hitCheck;
+    public GameObject sword;
+    public GameObject patrol;
     Rigidbody rb;
 
     public float curTime = 0f;
@@ -27,13 +30,15 @@ public class SwordmanBehaviour : MonoBehaviour {
     private float randFloat = 0.0f;
     private int targetF;
     private int sizeList;
+    private bool fightTime = false;
 
-    bool inCombat;
+    bool hitFin;
+    public bool inCombat;
     public bool canFight;
     public bool canCharge = false;
 
 
-    enum AIState { Chase, EnterCombat, Strike }
+    enum AIState { Chase, EnterCombat, Strike, Dead, Idle }
 
     AIState current_state;
     private AIState last_state;
@@ -41,19 +46,25 @@ public class SwordmanBehaviour : MonoBehaviour {
     // Use this for initialization
     void Start()
     {
+
         rb = this.GetComponent<Rigidbody>();
         animator = this.GetComponent<Animator>();
         animator.SetInteger("Speed", 6);
-        current_state = AIState.Chase;
-        
+        current_state = AIState.Idle;
+
+
     }
 
     void Update()
     {
-        inCombat = hitCheck.GetComponent<CharacterBattleLogic>().inCombat;
+        hitFin = sword.GetComponent<SwordCheck>().attackLanded;
+
 
         switch (current_state)
         {
+            case AIState.Idle:
+                Idle();
+                break;
             case AIState.Chase:
                 ReachTarget();
                 break;
@@ -63,29 +74,49 @@ public class SwordmanBehaviour : MonoBehaviour {
             case AIState.Strike:
                 Hit();
                 break;
+            case AIState.Dead:
+                Die();
+                break;
         }
 
+
+
+        if (health <= 0)
+            current_state = AIState.Dead;
+        Debug.Log(current_state);
         last_state = current_state;
-      /*  if (canFight == false)
-            ReachTarget();
-        else if (canFight)
-        {
-            EnterFight();
-            Debug.Log("ne");
-        }
-        if (canCharge && canFight)
-        {
-            Debug.Log("Can charge is " + canCharge + " and CanFight is " + canFight);
-//            Hit();
-        }
 
-        rb.velocity = Velocity; */
+//        Debug.Log(inCombat);
+
+        inCombat = hitCheck.GetComponent<CharacterBattleLogic>().inCombat;
     }
 
+    void Die()
+    {
+        animator.SetFloat("Speed", 0);
+        MoveDirection = Target.normalized;
+        Velocity = Vector3.zero;
+        animator.SetInteger("Health", 0);
+
+    }
+
+    void Idle()
+    {
+        animator.SetFloat("Speed", 0);
+        animator.SetInteger("Health", 100);
+        //            Debug.Log("TUPANICI SHUTOVE") ;
+        transform.LookAt(Target);
+        MoveDirection = Target.normalized;
+        Velocity = Vector3.zero;
+        //        this.GetComponent<Rigidbody>().isKinematic = true;
+
+        if (patrol.GetComponent<PatrolAgent>().targetFound == true)
+            current_state = AIState.Chase;
+    }
 
     void EnterFight()
     {
-   
+        
         Target = circlePosition.position;
         Target.y = transform.position.y;
         
@@ -104,14 +135,11 @@ public class SwordmanBehaviour : MonoBehaviour {
             curTime += Time.deltaTime;
             if (curTime >= pauseDuration)
             {
-                Debug.Log("Test 1");
                 if (inCombat == false)
                 {
-                    Debug.Log("Test 2");
-                    //                    canCharge = true;
-                    //Hit();
                     current_state = AIState.Strike;
-
+                    curTime = 0f;
+//                    Debug.Log("BLABLA" + current_state);
                 }
             }
         }
@@ -122,6 +150,9 @@ public class SwordmanBehaviour : MonoBehaviour {
     
     void Hit()
     {
+        bool endAction = false;
+
+        animator.SetFloat("Speed", 1);
         Target = Enemy.position;
         MoveDirection = Target - transform.position;
         Velocity = rb.velocity;
@@ -132,15 +163,28 @@ public class SwordmanBehaviour : MonoBehaviour {
 
         if (inCombat)
         {
+            animator.SetFloat("Speed", 0);
+            Debug.Log("TUPANICI SHUTOVE") ;
             transform.LookAt(Target);
-//            Debug.Log("Target" + Target);
             MoveDirection = Target.normalized;
-//            Debug.Log("MoveDir is " + MoveDirection);
             Velocity = Vector3.zero;
-//            Debug.Log("Vec3 is " + Velocity);
             animator.SetBool("canHit", true);
-        } 
-        Debug.Log("BOI");
+            
+        }
+
+        curTime += Time.deltaTime;
+        if (curTime > pauseDuration)
+//            animator.SetBool("canHit", false);
+
+//        Debug.Log("End Action is " + endAction + "HitFin is " + hitFin);
+
+        if ((hitFin))
+        {
+            animator.SetBool("canHit", false);
+            current_state = AIState.EnterCombat;
+        }
+//        Debug.Log("CURRCHECKBEFOREIF" + current_state);
+//        inCombat = false;
     }
 
     void ReachTarget()
@@ -155,6 +199,9 @@ public class SwordmanBehaviour : MonoBehaviour {
 
         rb.velocity = Velocity;
         transform.LookAt(Target);
+
+        if (fightTime)
+            current_state = AIState.EnterCombat;
     }
 
     void OnTriggerEnter(Collider other)
@@ -164,7 +211,14 @@ public class SwordmanBehaviour : MonoBehaviour {
 
         if (other.gameObject.tag == "FArea")
         {
+            fightTime = true;
             current_state = AIState.EnterCombat;
+        }
+
+        if (other.gameObject.tag == "Projectile")
+        {
+            health -= 25;
+            Destroy(other);
         }
     }
 
